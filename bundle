@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#
+# Created by M. Massenzio, 2022-01-21
+#
+# Creates the policy bundle.
+
+set -eu
+source ${UTILS_DIR}/utils
+
+declare -r base=$(abspath $(dirname $0))
+
+declare -r MANIFEST=${base}/manifest.json
+declare -r REV=$(cat ${MANIFEST} | jq -r ".revision")
+declare -r ROOT=$(cat ${MANIFEST} | jq -r ".roots[0]")
+
+declare -r TMP=$(mktemp -d)
+declare -r DEST="out/bundles"
+declare -r ARC="authz-${REV}.tar.gz"
+
+mkdir -p ${TMP}/${ROOT}
+mkdir -p ${DEST}
+
+cp -r example/policies/*.rego ${TMP}/${ROOT}
+cp ${MANIFEST} ${TMP}/.manifest
+
+# Needed to deal with MacOS "quarantine" nonsense.
+# See: https://apple.stackexchange.com/questions/75989/why-does-osx-add-extra-filename-when-i-tar-a-directory
+export COPYFILE_DISABLE=1
+tar --create --file ${DEST}/${ARC} -z -C $TMP .manifest ${ROOT}
+success "Created ${ARC} (Rev. ${REV}) in ${DEST}"

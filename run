@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+# Created by M. Massenzio, 2022-06-10
+#
+# Usage: run [-d]
+#
+# Runs the OPA Server with local docker for dev/test, restarting it
+# if it's already running.
+#
+#   -d    debug flag runs the OPA server in foreground so any error with
+#         the bundle can be observed from the logs.
+
+set -eu
+
+source "${UTILS_DIR}/utils"
+
+declare -r base=$(abspath $(dirname $0))
+declare -r manifest=${base}/src/main/resources/manifest.json
+declare -r tag=$(cat ${manifest} | jq ".revision" | sed "s/\"//g")
+declare -r policies=${base}/out/bundles/authz-${tag}.tar.gz
+declare -r bundle=/etc/opa/bundles/authz.tar.gz
+
+# We are using the same OPA opa_version as the Pod running in AWS.
+declare -r opa_version=0.42.2
+declare -r port=8181
+
+msg "Using Rev. ${tag}"
+if [[ ! -e ${policies} ]]
+then
+  msg "Building Policies bundle ${policies}"
+  ./bundle
+fi
+
+
+opa_id=$(docker ps --filter "name=opa" --format "{{.ID}}")
+if [[ -n ${opa_id} ]]; then
+    msg "Restarting OPA server to ensure newest bundle is being used"
+    docker stop ${opa_id} >/dev/null
+fi
+
+# Do NOT confuse the script's -d (debug) with docker's -d (daemon).
+declare daemon="-d"
+if [[ ${1:-} == "-d" ]]
+then
+  daemon=""
+fi
+msg "Running OPA Server v. ${opa_version} (Policies Rev. ${tag}) on localhost:${port}"
+docker run --rm ${daemon} -p ${port}:8181 --name opa \
+  -v ${policies}:${bundle} \
+  openpolicyagent/opa:${opa_version} run --server --addr :8181 ${bundle}
+
+if [[ -z ${daemon} ]]
+then
+  # If we got here, the OPA server had been terminated via Ctrl-C or TERM signal.
+  msg "OPA server terminated by user"
+  exit
+fi
+
+# Check to see if the server came up
+msg "Waiting for the server to come up..."
+sleep 2
+opa_id=$(docker ps --filter "name=opa" --format "{{.ID}}")
+if [[ -z ${opa_id} ]]; then
+    fatal "OPA Server failed to start, there may be errors in the policies, re-run using the -d option"
+fi
+
+success "OPA Server is running"

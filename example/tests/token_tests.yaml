@@ -1,0 +1,41 @@
+# Copyright (c) 2022 CopilotIQ Inc.  All rights reserved
+#
+# Created by M. Massenzio, 2022-07-06
+
+testcase:
+  name: Tokens
+  description: "Policy tests for obtaining API Tokens"
+
+  tests:
+    # Currently, only System users (service bots included)
+    # can create API tokens, that can then be handed out to
+    # Partners.
+    - name: "service-create-token"
+      expect: true
+      token:
+        sub: "bot@copilotiq.com"
+        roles:
+          - SYSTEM
+      resource:
+        path: "/token"
+        method: POST
+
+    - name: "user-create-token-fails"
+      expect: false
+      token:
+        sub: "fake@copilotiq.com"
+        roles:
+          - USER
+      resource:
+        path: "/token"
+        method: POST
+
+    - name: "user-get-token"
+      expect: true
+      token:
+        sub: "biah@copilotiq.com"
+        roles:
+          - USER
+      resource:
+        path: "/token"
+        method: GET

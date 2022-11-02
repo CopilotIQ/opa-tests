@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+# Created by M. Massenzio, 2022-06-07
+#
+# Usage: test [-f]
+#
+# Runs all tests (regenerating them first) using the running OPA instance.
+# If no OPA container is running, it will start it using the `run` scripts.
+#
+#   -f      force restart of a running OPA server (useful if the Rego bundle
+#           had been recreated since the container was started).
+
+set -eu
+source ${UTILS_DIR}/utils
+
+declare base=$(abspath $(dirname $0))
+declare opa=http://localhost:8181
+declare gentests=out/bin/gentests
+declare generated=${base}/generated
+declare tests=${1:-example/tests}
+
+rm -rf ${generated}
+[ ! -x "${base}/${gentests}" ] && make
+
+mkdir -p ${generated}/{allow,deny}
+${base}/${gentests} -d ${generated} ${tests}
+
+is_running=$(docker ps --filter "name=opa" --format "{{.ID}}")
+if [[ -z ${is_running} || ${1:-} == "-f" ]]
+then
+  ./run
+fi
+
+declare failed=0
+declare count=0
+
+for testcase in allow deny
+do
+  if [[ ${testcase} == "allow" ]]
+  then
+    expected="true"
+  else
+    expected="false"
+  fi
+  msg "${testcase} Test Cases: "
+  for req in $(ls ${generated}/${testcase}/*.json)
+  do
+      testname=$(basename $req)
+      res=$(curl -s -X POST ${opa}/v1/data/copilotiq/allow --data "@$req" | jq ".result")
+      if [[ $res != $expected ]]
+      then
+        errmsg "${testname} failed"
+        failed=$((${failed} + 1))
+      fi
+      echo -n "."
+      count=$((${count} + 1))
+  done
+  echo ""
+done
+
+if [[ ${failed} > 0 ]]
+then
+  errmsg "${failed} tests of ${count} failed"
+  exit 1
+else
+  success "${count} tests passed"
+fi

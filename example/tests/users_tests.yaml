@@ -1,0 +1,98 @@
+# Copyright (c) 2022 CopilotIQ Inc.  All rights reserved
+#
+# Created by M. Massenzio, 2022-06-22
+
+testcase:
+  name: Users
+  description: "Policy tests for the /users API"
+
+  tests:
+    - name: "create_user"
+      expect: false
+      token:
+        sub: "alice@gmail.com"
+        roles:
+          - USER
+      resource:
+        path: "/users"
+        method: POST
+
+    - name: "admin_create_user"
+      expect: true
+      token:
+        sub: "admin@copilotiq.com"
+        roles:
+          - ADMIN
+      resource:
+        path: "/users"
+        method: POST
+
+    - name: "user_delete_user"
+      expect: false
+      token:
+        sub: "bob@copilotiq.com"
+        roles:
+          - USER
+      resource:
+        path: "/users"
+        method: DELETE
+
+    - name: "admin_delete_user"
+      expect: true
+      token:
+        sub: "admin@copilotiq.com"
+        roles:
+          - ADMIN
+      resource:
+        path: "/users"
+        method: DELETE
+
+    - name: "admin_get_user"
+      expect: true
+      token:
+        sub: "admin@copilotiq.com"
+        roles:
+          - ADMIN
+      resource:
+        path: "/users"
+        method: GET
+
+    - name: "staff_get_user"
+      expect: true
+      token:
+        sub: "marco@copilotiq.com"
+        roles:
+          - STAFF
+      resource:
+        path: "/users"
+        method: GET
+
+    - name: "user_update_self_status_fails"
+      expect: false
+      token:
+        sub: "bob@gmail.com"
+        roles:
+          - USER
+      resource:
+        path: "/users/bob@gmail.com/status/ACTIVE"
+        method: PUT
+
+    - name: "admin_update_user_roles"
+      expect: true
+      token:
+        sub: "admin@copilotiq.com"
+        roles:
+          - ADMIN
+      resource:
+        path: "/users/bob@gmail.com/roles"
+        method: PUT
+
+    - name: "patient_update_self_roles_fails"
+      expect: false
+      token:
+        sub: "bob@gmail.com"
+        roles:
+          - USER
+      resource:
+        path: "/users/bob@gmail.com/roles"
+        method: PUT
