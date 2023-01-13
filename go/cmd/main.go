@@ -4,54 +4,59 @@
 package main
 
 import (
-    "flag"
-    . "gentests/gentests"
-    "github.com/massenz/slf4go/logging"
-    "os"
-    "strings"
+	"flag"
+	"fmt"
+	. "github.com/CopilotIQ/opa-tests/common"
+	. "github.com/CopilotIQ/opa-tests/gentests"
+	. "github.com/CopilotIQ/opa-tests/workers"
+	slf4go "github.com/massenz/slf4go/logging"
 )
 
 const (
-    Manifest = "manifest.json"
-    Tests    = "example/tests"
-    Dest     = "out/tests"
+	Manifest = "manifest.json"
 )
 
 var (
-  // Filled in during build
-  Release string
+	// Release is filled in during build
+	Release string
 )
 
 func main() {
-    manifest := flag.String("manifest", Manifest, "Path to the manifest file")
-    dest := flag.String("d", Dest, "Path to the destination directory")
-    debug := flag.Bool("v", false, "Enable verbose logging")
+	manifest := flag.String("manifest", Manifest, "Path to the manifest file")
+	debug := flag.Bool("v", false, "Enable verbose logging")
+	opaUrl := flag.String("opa", "http://localhost:8181", "The URL for the OPA server")
 
-    flag.Parse()
+	flag.Parse()
+	log := slf4go.NewLog("opa-tests")
 
-    // Path to the tests directory
-    tests := flag.Arg(0)
-    if tests == "" {
-        tests = Tests
-    }
+	// Path to the tests directory
+	srcDir := flag.Arg(0)
+	if srcDir == "" {
+		flag.Usage()
+		log.Fatal(fmt.Errorf("missing tests directory"))
+	}
 
-    log := logging.NewLog("opa-tests")
-    if *debug {
-        logging.RootLog.Level = logging.DEBUG
-        log.Level = logging.DEBUG
-    }
-    m := ReadManifest(*manifest)
-    log.Info("Generating Testcases from: %s -- Bundle rev. %s", tests, m.Revision)
-    log.Info("Tests will be generated into: %s", *dest)
+	if *debug {
+		log.Level = slf4go.DEBUG
+	}
+	m := ReadManifest(*manifest)
+	log.Info("Generating Testcases from: %s -- Bundle rev. %s", srcDir, m.Revision)
+	tests, err := Generate(srcDir)
+	if err != nil {
+		log.Error("cannot read test cases: %s", err)
+	}
+	log.Info("SUCCESS - All tests generated")
 
-    var tg = &TestGenerator{
-        SourceDir: tests,
-        AllowDir:  strings.Join([]string{*dest, "allow"}, string(os.PathSeparator)),
-        DenyDir:   strings.Join([]string{*dest, "deny"}, string(os.PathSeparator)),
-    }
-
-    if err := tg.Generate(); err != nil {
-        panic(err)
-    }
-    log.Info("SUCCESS - All tests generated")
+	dataChan := make(chan Request)
+	go func() {
+		err := SendData(*opaUrl, dataChan)
+		if err != nil {
+			log.Error("error sending requests to OPA server: %v", err)
+		}
+	}()
+	for _, req := range tests {
+		dataChan <- req
+	}
+	// Once you're done sending data, close the channel
+	close(dataChan)
 }

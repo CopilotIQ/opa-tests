@@ -5,6 +5,7 @@
 testcase:
   name: Users
   description: "Policy tests for the /users API"
+  iss: "example.issuer"
 
   tests:
     - name: "create_user"

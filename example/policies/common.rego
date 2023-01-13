@@ -13,8 +13,9 @@ token := t[1] {
     t := io.jwt.decode(input.api_token)
 }
 
+# We only accept JWT issued by a trusted `iss` claim
 user := u {
-    token.iss == "copilotiq.com"
+    token.iss == "example.issuer"
     u = token.sub
 }
 

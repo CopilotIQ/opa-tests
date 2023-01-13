@@ -1,4 +1,4 @@
-module gentests
+module github.com/CopilotIQ/opa-tests
 
 go 1.18
 

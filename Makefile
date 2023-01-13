@@ -2,7 +2,7 @@
 #
 # Created by M. Massenzio, 2022-06-23
 
-gentests := out/bin/gentests
+bin := out/bin/opatest
 
 all:
-	cd go && go build -o ../$(gentests) cmd/main.go
+	cd go && go build -o ../$(bin) cmd/main.go

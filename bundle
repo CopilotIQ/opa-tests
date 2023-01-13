@@ -4,7 +4,7 @@
 #
 # Creates the policy bundle.
 
-set -eu
+set -eux
 source ${UTILS_DIR}/utils
 
 declare -r base=$(abspath $(dirname $0))
