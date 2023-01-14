@@ -1,21 +1,47 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 #
 # Created by M. Massenzio, 2022-01-21
-#
-# Creates the policy bundle.
+set -eu
 
-set -eux
-source ${UTILS_DIR}/utils
+function usage {
+  echo "Usage: bundle SRC [OUT] [MANIFEST]
 
-declare -r base=$(abspath $(dirname $0))
+Creates the policy bundle in the OUT directory, from the Rego files in SRC.
 
-declare -r MANIFEST=${base}/manifest.json
+   SRC          the folder containing all the Rego files. Required.
+   OUT          where the bundle (.tar.gz) will be placed (and read from the OPA server)
+                If unspecified, out/bundles/
+   MANIFEST     the OPA bundle Manifest (JSON); if unspecified we will use SRC/manifest.json"
+}
+
+declare -r SRC=${1:-}
+if [[ -z ${SRC} || ! -d ${SRC} ]]
+then
+  usage
+  echo "FATAL: SRC must be specified and be a valid directory"
+  exit 1
+fi
+
+declare -r DEST=${2:-"out/bundles"}
+declare -r MANIFEST=${3:-${SRC}/manifest.json}
+if [[ ! -e ${MANIFEST} ]]
+then
+  usage
+  echo "FATAL: A valid Manifest must be specified: ${MANIFEST} not found"
+  exit 1
+fi
+
 declare -r REV=$(cat ${MANIFEST} | jq -r ".revision")
 declare -r ROOT=$(cat ${MANIFEST} | jq -r ".roots[0]")
-
 declare -r TMP=$(mktemp -d)
-declare -r DEST="out/bundles"
+
 declare -r ARC="authz-${REV}.tar.gz"
+
+mkdir -p ${DEST}
+if [[ -e ${DEST}/${ARC} ]];
+then
+  read -q "?Bundle ${DEST}/${ARC} exists. Overwrite [y/n]? "
+fi
 
 mkdir -p ${TMP}/${ROOT}
 mkdir -p ${DEST}
@@ -27,4 +53,4 @@ cp ${MANIFEST} ${TMP}/.manifest
 # See: https://apple.stackexchange.com/questions/75989/why-does-osx-add-extra-filename-when-i-tar-a-directory
 export COPYFILE_DISABLE=1
 tar --create --file ${DEST}/${ARC} -z -C $TMP .manifest ${ROOT}
-success "Created ${ARC} (Rev. ${REV}) in ${DEST}"
+echo "Created ${ARC} (Rev. ${REV}) in ${DEST}"
