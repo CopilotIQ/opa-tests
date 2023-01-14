@@ -7,6 +7,10 @@ testcase:
   description: "Policy tests for the /users API"
   iss: "example.issuer"
 
+  target:
+    policy: allow
+    package: copilotiq
+
   tests:
     - name: "create_user"
       expect: false

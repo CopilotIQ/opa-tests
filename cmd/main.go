@@ -10,6 +10,7 @@ import (
 	. "github.com/CopilotIQ/opa-tests/gentests"
 	. "github.com/CopilotIQ/opa-tests/workers"
 	slf4go "github.com/massenz/slf4go/logging"
+	"sync"
 )
 
 const (
@@ -47,6 +48,7 @@ func main() {
 
 	if *debug {
 		log.Level = slf4go.DEBUG
+		Log.Level = slf4go.DEBUG
 	}
 	m := ReadManifest(*manifest)
 	log.Info("Generating Testcases from: %s -- Bundle rev. %s", srcDir, m.Revision)
@@ -54,18 +56,22 @@ func main() {
 	if err != nil {
 		log.Error("cannot read test cases: %s", err)
 	}
-	log.Info("SUCCESS - All tests generated")
+	log.Info("All tests generated")
 
-	dataChan := make(chan Request)
+	dataChan := make(chan TestUnit)
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
 		err := SendData(*opaUrl, dataChan)
 		if err != nil {
 			log.Error("error sending requests to OPA server: %v", err)
 		}
+		wg.Done()
 	}()
 	for _, req := range tests {
 		dataChan <- req
 	}
 	// Once you're done sending data, close the channel
 	close(dataChan)
+	wg.Wait()
 }

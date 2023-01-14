@@ -19,7 +19,7 @@ func ReadManifest(path string) *common.BundleManifest {
 	var manifest common.BundleManifest
 	err = json.NewDecoder(jsonManifest).Decode(&manifest)
 	if err != nil {
-		log.Error("cannot decode Manifest %s: %s", path, err)
+		Log.Error("cannot decode Manifest %s: %s", path, err)
 		return nil
 	}
 	return &manifest
@@ -32,7 +32,7 @@ func ReadTestcase(path string) (*common.Testcase, error) {
 	}
 	var template common.TestcaseTemplate
 	if err := yaml.NewDecoder(yamlTestcase).Decode(&template); err != nil {
-		log.Error("cannot decode Testcase %s: %s", path, err)
+		Log.Error("cannot decode Testcase %s: %s", path, err)
 		return nil, err
 	}
 	return &template.Body, nil

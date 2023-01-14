@@ -8,16 +8,17 @@ import (
 	. "github.com/CopilotIQ/opa-tests/common"
 	"github.com/massenz/slf4go/logging"
 	"path/filepath"
+	"strings"
 )
 
 const (
 	YamlGlob = "*.yaml"
 )
 
-var log = logging.RootLog
+var Log = logging.NewLog("testgen")
 
 func NewRequest(t *Test) Request {
-	log.Debug("Creating Request: %v", *t)
+	Log.Debug("Creating Request: %v", *t)
 	return Request{
 		Token:    NewToken(&t.Token),
 		Resource: t.Resource,
@@ -25,8 +26,8 @@ func NewRequest(t *Test) Request {
 }
 
 // Generate all the test cases from the `SourceDir`
-func Generate(SourceDir string) ([]Request, error) {
-	log.Debug("Generating test requests from %s", SourceDir)
+func Generate(SourceDir string) ([]TestUnit, error) {
+	Log.Debug("Generating test requests from %s", SourceDir)
 
 	// TODO: walk the subtree (instead of just the directory) and modify the test names to
 	// reflect the position in the subtree.
@@ -41,22 +42,31 @@ func Generate(SourceDir string) ([]Request, error) {
 		return nil, err
 	}
 
-	var requests = make([]Request, len(files))
+	var requests = make([]TestUnit, 0)
 	for _, file := range files {
-		log.Debug("- %s", file)
+		Log.Debug("- %s", file)
 		testcase, err := ReadTestcase(file)
 		if err != nil {
-			log.Error("could not read YAML %s: %s", file, err)
+			Log.Error("could not read YAML %s: %s", file, err)
 			return nil, err
 		}
-		log.Debug("Creating Test (%s): %s", file, testcase.Name)
+		endpoint := strings.Join([]string{testcase.Target.Package, testcase.Target.Policy}, "/")
+		Log.Debug("%s === %s", file, testcase.Name, endpoint)
 		for _, test := range testcase.Tests {
-			log.Debug("JWT contents: %v", test.Token)
+			testname := strings.Join([]string{testcase.Name, test.Name}, ".")
+			Log.Debug("--- %s", testname)
+			Log.Trace("JWT contents: %v", test.Token)
 			if test.Token.Issuer == "" {
 				test.Token.Issuer = testcase.Iss
 			}
-			requests = append(requests, NewRequest(&test))
+			requests = append(requests, TestUnit{
+				Name:        testname,
+				Endpoint:    endpoint,
+				Body:        TestBody{Input: NewRequest(&test)},
+				Expectation: test.Expect,
+			})
 		}
 	}
+	Log.Info("Generated %d tests", len(requests))
 	return requests, nil
 }

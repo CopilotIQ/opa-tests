@@ -7,6 +7,11 @@ testcase:
   description: "Policy tests for obtaining API Tokens"
   iss: "example.issuer"
 
+  target:
+    policy: allow
+    package: copilotiq
+
+
   tests:
     # Currently, only System users (service bots included)
     # can create API tokens, that can then be handed out to
