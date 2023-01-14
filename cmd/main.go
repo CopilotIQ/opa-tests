@@ -18,7 +18,8 @@ const (
 
 var (
 	// Release is filled in during build
-	Release string
+	Release  string
+	ProgName string
 )
 
 func main() {
@@ -26,8 +27,16 @@ func main() {
 	debug := flag.Bool("v", false, "Enable verbose logging")
 	opaUrl := flag.String("opa", "http://localhost:8181", "The URL for the OPA server")
 
+	flag.Usage = func() {
+		fmt.Printf("Usage: %s [-v] [-opa URL] [-manifest MANIFEST] TESTS\n\n", ProgName)
+		//goland:noinspection GoPrintFunctions
+		fmt.Println("TESTS    the directory containing the YAML test cases")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
+
 	log := slf4go.NewLog("opa-tests")
+	log.Info("Rego Test Generation Utility - rev. %s", Release)
 
 	// Path to the tests directory
 	srcDir := flag.Arg(0)

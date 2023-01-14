@@ -1,0 +1,77 @@
+#!/usr/bin/env zsh
+#
+# Created by M. Massenzio, 2022-06-10
+set -eu
+
+function usage() {
+echo "Usage: run-opa [-v] BUNDLE
+
+Runs the OPA Server as a docker container, restarting it if it's already running.
+
+    -v     optional debug flag, runs the OPA server in foreground so any error with
+           the bundle can be observed from the logs.
+  BUNDLE   the path (absolute or relative) to the policies bundle
+
+The BUNDLE can be generated with the 'bundle' script, see usage there."
+}
+
+# We will need an absolute path to mount the policy on the container
+function abspath () {
+	local cmd=python3
+	if [[ ! -x $(which $cmd) ]]
+	then
+		cmd=python
+	fi
+	echo $(${cmd} -c "import os; print(os.path.abspath(\"${1}\"))")
+}
+
+declare -r base=$(dirname $0)
+
+declare daemon="-d"
+if [[ ${1:-} == "-v" ]]
+then
+  shift
+  daemon=""
+fi
+
+declare policies=${1:-}
+if [[ -z ${policies} || ! -e ${policies} ]]
+then
+  usage
+  echo "ERROR Bundle ${policies} must be defined and be a valid policy bundle"
+  exit 1
+fi
+
+declare -r bundle=/etc/opa/bundles/$(basename ${policies})
+declare -r opa_version=0.48.0
+declare -r port=8181
+
+
+opa_id=$(docker ps --filter "name=opa" --format "{{.ID}}")
+if [[ -n ${opa_id} ]]; then
+    if read -q "?Restart OPA server to ensure newest bundle is being used? [y/n] "; then
+      docker stop ${opa_id} >/dev/null
+    fi
+fi
+
+echo "Running OPA Server v. ${opa_version}; use: http://localhost:${port}/v1/data for policies"
+docker run --rm ${daemon} -p ${port}:8181 --name opa \
+  -v $(abspath $(dirname ${policies})):$(dirname ${bundle}) \
+  openpolicyagent/opa:${opa_version} run --server --addr :8181 ${bundle}
+
+if [[ -z ${daemon} ]]
+then
+  # If we got here, the OPA server had been terminated via Ctrl-C or TERM signal.
+  msg "OPA server terminated by user"
+  exit
+fi
+
+# Check to see if the server came up
+echo "Waiting for the server to come up..."
+sleep 2
+opa_id=$(docker ps --filter "name=opa" --format "{{.ID}}")
+if [[ -z ${opa_id} ]]; then
+    fatal "OPA Server failed to start, there may be errors in the policies, re-run using the -d option"
+fi
+
+echo "OPA Server is running (${opa_id})"
