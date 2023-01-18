@@ -5,6 +5,12 @@
 testcase:
   name: Tokens
   description: "Policy tests for obtaining API Tokens"
+  iss: "example.issuer"
+
+  target:
+    policy: allow
+    package: copilotiq
+
 
   tests:
     # Currently, only System users (service bots included)

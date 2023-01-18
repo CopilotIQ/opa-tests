@@ -6,32 +6,33 @@ package gentests
 
 import (
 	"encoding/json"
+	"github.com/CopilotIQ/opa-tests/common"
 	"gopkg.in/yaml.v2"
 	"os"
 )
 
-func ReadManifest(path string) *BundleManifest {
+func ReadManifest(path string) *common.BundleManifest {
 	jsonManifest, err := os.Open(path)
 	if err != nil {
 		panic(err)
 	}
-	var manifest BundleManifest
+	var manifest common.BundleManifest
 	err = json.NewDecoder(jsonManifest).Decode(&manifest)
 	if err != nil {
-		log.Error("cannot decode Manifest %s: %s", path, err)
+		Log.Error("cannot decode Manifest %s: %s", path, err)
 		return nil
 	}
 	return &manifest
 }
 
-func readTestcase(path string) (*Testcase, error) {
+func ReadTestcase(path string) (*common.Testcase, error) {
 	yamlTestcase, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	var template TestcaseTemplate
+	var template common.TestcaseTemplate
 	if err := yaml.NewDecoder(yamlTestcase).Decode(&template); err != nil {
-		log.Error("cannot decode Testcase %s: %s", path, err)
+		Log.Error("cannot decode Testcase %s: %s", path, err)
 		return nil, err
 	}
 	return &template.Body, nil

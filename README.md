@@ -50,7 +50,7 @@ Each OPA request carries along a JWT<sup>3</sup>, which will be encoded and sign
 
 Each JWT carries a `user` and an array or `roles`<sup>4</sup> which will be used to authorize the request.
 
-A `policy request` essentially asks OPA to assert whether the givne `role` is allowed to perform the given "action" (defined by the HTTP `method`) on the "entity" (encoded in the `path`).
+A `policy request` essentially asks OPA to assert whether the given `role` is allowed to perform the given "action" (defined by the HTTP `method`) on the "entity" (encoded in the `path`).
 
 In this respect a policy `P` defines a `mapping` from a set `{role, action, entity}` to `boolean`:
 
