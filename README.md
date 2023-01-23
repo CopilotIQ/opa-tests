@@ -34,11 +34,11 @@ The Generator itself is written in Go and built using `make`, the binary is gene
 
 ## Testcases
 
-A `Testcase` (a self-contained YAML descriptor<sup>2</sup>) describes a set of `Test`s which will be run in sequence; each `Test` will result in a JSON payload which, depending on the value of `expect` will be generated in either the `allow` or `deny` subfolder of `src/test/resouces` and will respectively expect a `{"result": true | false}` when the tests are run, from OPA.
+A `Testcase` (a self-contained YAML descriptor<sup>1</sup>) describes a set of `Test`s which will be run in sequence; each `Test` will result in a JSON payload which, depending on the value of `expect` will be generated in either the `allow` or `deny` subfolder of `src/test/resouces` and will respectively expect a `{"result": true | false}` when the tests are run, from OPA.
 
-Each OPA request carries along a JWT<sup>3</sup>, which will be encoded and signed by the generator, and sent along with the request.
+Each OPA request carries along a JWT, which will be encoded and signed by the generator, and sent along with the request.
 
-Each JWT carries a `user` and an array or `roles`<sup>4</sup> which will be used to authorize the request.
+Each JWT carries a `sub` and an array or `roles` which will be used to authorize the request.<sup>2</sup>
 
 A `policy request` essentially asks OPA to assert whether the given `role` is allowed to perform the given "action" (defined by the HTTP `method`) on the "entity" (encoded in the `path`).
 
@@ -50,64 +50,181 @@ Each `Test` in a `Testcase` then defines an invariant (or, if you will, an asser
 
 ### Reference
 
-`TODO: detailed explanation of each field in the testcase YAML`
+**Note**
+> This is still under active development and will change in future, especially as we add the ability to templatize the POST request (in JSON)
+
+A `Testcase` currently defines the following fields:
+
+```
+testcase:
+  name: Users
+  description: "Policy tests for the /users API"
+  iss: "example.issuer"
+
+  target:
+    policy: allow
+    package: example
+
+  tests:
+    - name: "create_user"
+      expect: false
+      token:
+        sub: "alice@gmail.com"
+        roles:
+          - USER
+      resource:
+        path: "/users"
+        method: POST
+    - ... more tests
+```
+
+- `name` and `description` are simply used for reporting purposes;
+- `iss` will be inserted into the generated JWT, as the "issuer" of the Token;
+- `target` defines the OPA `data` endpoint that will be used (see below);
+- `tests` is a list of invocations to the OPA endpoint, which individually assert against a policy use case or condition (in this example, for example, that a `USER` role cannot create another user by `POST`ing to the `/users` API): see [Tests](#tests).
+
+The `target` defines which policy will be invoked, in which Rego package, and ultimately it is composed in a way that is defined by OPA, for the `/v1/data` API; given the example above, we would `POST` the JSON requests (defined by each of the `tests`) to:
+
+      http://<server>:<port>/v1/data/example/allow
+
+If the Rego policy is in a `package com.example.users` and we wish to evaluate a `grant` rule, this would need to be described in the `Testcase` as follows:
+
+```
+  target:
+    policy: grant
+    package: com.example.users
+```
+
+and would be tested against the `/v1/data/com/example/users/grant` URL.
+
+## Tests
+
+A `test` is an assertion against a server's API (defined by the `resource` being accessed) by a given `subject` having a set of `roles` - the test asserts the value returned by the policy evaluation against the `expect` value:
+
+```
+    - name: "create_user"
+      expect: false
+      token:
+        sub: "alice@gmail.com"
+        roles:
+          - USER
+      resource:
+        path: "/users"
+        method: POST
+
+```
+
+will result in a JSON body to be sent to the test OPA server's `/v1/data/example/allow` endpoint, with a JWT with the following claims (amongst others):
+
+```json
+{
+  "sub": "alice@gmail.com",
+  "iss": "example.issuer",
+  "roles": ["USER"],
+  "expires_at": ...
+}
+```
+
+the request would carry this JWT as an `api_token` field (base-64 encoded) and the following other fields:
+
+```json
+{
+    "input": {
+        "api_token":"eyJhbG...6I8eHnFU",
+        "resource": {
+            "path": "/users",
+            "method":"POST"
+          }
+      }
+}
+
+```
+
+This would succeed when the OPA server returns a response `{result: false}`, and fail with anything else (including an empty response, which indicates the required rule in the policy package does not exist).
+
+**Note**
+> To create or inspect JWTs you can use the [`jwtie`](https://github.com/massenz/jwtie) utility.
 
 
 # Execute Tests
 
-In its simplest form, tests from a `path/to/tests` directory can be run against a running OPA server (see [`run-opa`](run-opa) for an example of how to do it) which has loaded the Rego policies that we wish to test from a "bundle" (see [Bundle](#bundle) for an example of how to generate one).
+**NOTE: SOME PARTS OF THE BELOW ARE STILL BEING IMPLEMENTED**
+
+Currently, `opatest` does not run the OPA container (see [`run-opa`](run-opa) for an example of how to do it) and will not generate the "bundle" from the policies (see [Bundle](#bundle) for an example of how to generate one).
+
+Over the next few iterations, we will move all the functionality into the `opatest` binary; for now, to run the tests use:
 
 `opa-test -manifest policies.json -opa http://localhost:8089 path/to/tests`
 
-will load Manifest metadata from the `some/path/policies.json` file (by default uses `manifest.json` in the current directory) and then generate the Testcases (`*.yaml`) from the `path/to/tests`directory.
 
-If you want to know how stuff works, keep reading.
+**END NOTE**
 
-## Testing details
+By default `opatest` assumes a certain directory structure for policies, and tests, but those defaults can be modified via command-line flags.
 
-Locally (and for testing) we use a simple configuration which loads the bundle directly from the filesystem, unlike the one deployed in AWS's EKS<sup>5</sup>, so that we do not need to upload/download policies from S3 bucket every time there is a change; however this means that the container needs restarting every time you change one of the Rego policies and want the new version to be picked up<sup>6</sup>.
-
-Essentially, the cycle is "edit policies / bundle / restart OPA / test" using the respective scripts<sup>7</sup>:
+The structure resembles closes the one that Gradle enforces on projects, in a simplified form:
 
 ```
-# To build the latest policy bundle (to the default out/bundles directory)
-./bundle path/to/policies
-
-# To run (or restart) the OPA Server locally; the version
-# will be emitted by the bundle script
-./run-opa out/bundles/authz-{version}.tar.gz
-
-# To test the policies (we recommend adding opa-test to your PATH)
-opa-test -manifest src/rego/resources/manifest.json \
-    -opa http://localhost:8181 \
-    src/rego/tests
+$(pwd)                    -- the current directory
+  |
+  -- src
+  |    |
+  |    -- main
+  |    |   |
+  |    |   -- rego         -- contains all *.rego OPA policies
+  |    |   |
+  |    |   -- resources    -- manifest.json
+  |    |   
+  |    -- tests            -- contains all *.yaml Testcases
+  |        |
+  |        -- resources    -- contains all *.json Request Templates
+  |
+  -- out
+      |
+      -- reports           -- test results          
 ```
 
-**TO BE IMPLEMENTED**
+The locations defined above can be changed using the following flags:
 
-A lot of the above will be simplified, by encapsulating the whole functionality in the `opa-test` binary:
+- `-manifest`   path to `manifest.json`
+- `-src`        directory containing Rego (`*.rego`) policies (including subfolders)
+- `-templates`  directory for JSON Golang templates for the requests
+- `-out`        directory where the test results will be generated
+- `path/to/tests`  if present, the first argument will point to the folder containing the `*.yaml` testcases
 
-```
-opa-test -manifest src/rego/resources/manifest.json \
-    -policies src/rego/main -out report.json -p \
-    src/rego/tests
-```
+All paths can be absolute or relative to the current folder.
 
-The Go binary will combine all the functionality of building the policies bundle, starting the OPA container, generating the tests and emitting the report.
+`opatest -h` will provide more up-to-date details about flags and defaults.
 
-Optionally, the `-p` flag will tell the runner to run tests in parallel to speed up execution.
+Running `opatest` will cause the following to happen:
 
-Finally, assuming the default structure of the repository to be gradle-like, all the above would be default values, so the same as above could be achieved simply with:
+1. all Rego files will be "bundled" into a `tar.gz` archive stored in a temporary directory;
 
-```
-opa-test -p
-```
+2. an OPA [TestContainer](https://testcontainers.io) will be launched, and the bundle loaded;
 
-and the `report.json` generated in the default `out/reports`.
+3. for each of the `Testcase` files in the `tests` directory, we will extract the list of `tests`;
 
+4. for each one of them, we generate an encoded JWT, and the JSON request body, then POST it to the test OPA;
+
+5. the `result` returned by OPA will be compared with the `expect` assertion in the test;
+
+6. all tests' results are then collated in a JSON report (`results.json`) and written out to `out/reports`
+
+Tests will be run in parallel, using a number of workers determined by the available CPU cores (up to 70%) which can be changed using the `-workers` flag (using `1` disables running tests in parallel).
+
+**TODO: the process of templatizing the JSON requests is still TBD**
 
 
 # Optional Components
+
+## Running an OPA server locally
+
+To run OPA inside a container, you can use the `run-opa` script (after creating a "bundle", see [`bundle`](#bundle)):
+
+```
+./run-opa out/bundles/authz-0.6.26.tar.gz
+
+2023-01-22T22:43 [INFO] Running OPA Server v. 0.48.0; use: http://localhost:8181/v1/data for policies
+```
 
 ## Bundle
 
@@ -122,6 +239,7 @@ to see usage instructions.
 
 ```
 └─( ./bundle examples/policies out/bundles examples/policies/manifest.json
+
 Bundle out/bundles/authz-0.6.26.tar.gz exists. Overwrite [y/n]? y
 Created authz-0.6.26.tar.gz (Rev. 0.6.26) in out/bundles
 ```
@@ -130,20 +248,12 @@ The command above will package the Rego files in a tar gzipped file in `out/bund
 
 ## Common Utilities
 
-The `bundle` script uses the [Common Utilities](https://github.com/massenz/common-utils) helpers (in particular the `utils` functions and `parse-args`): please see that repository for instructions on how to [install a recent release](https://github.com/massenz/common-utils#usage) and configure your environment `$UTILS_DIR` variable to point to that folder.
+The `bundle` and `run-opa` scripts use the [Common Utilities](https://github.com/massenz/common-utils): please see that repository for instructions on how to [install a recent release](https://github.com/massenz/common-utils#usage) and configure your environment `$UTILS_DIR` variable to point to that folder.
 
 ---
 
 # Notes
 
-<sup>1</sup> This is however taken care of in the `test` script, and is not necessary.
+<sup>1</sup> See ['users_tests.yaml'](examples/tests/users_tests.yaml) for an example.
 
-<sup>2</sup> See ['events_tests.yaml'](src/test/tests/events_tests.yaml) for an example.
-
-<sup>3</sup> See [`jwt-opa`](https://github.com/massenz/jwt-opa).
-
-<sup>6</sup> See [here](run#L34)
-
-<sup>7</sup> The bundle does not get reloaded if the underlying file changes; upon running `bundle` you will need to restart the container using `run-opa`.
-
-<sup>8</sup> Note the use of `/com.example` instead of the full `/com.example/allow`
+<sup>2</sup> See [`jwt-opa`](https://github.com/massenz/jwt-opa).
