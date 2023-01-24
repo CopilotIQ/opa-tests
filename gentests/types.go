@@ -2,7 +2,7 @@
 //
 // Created by M. Massenzio, 2022-06-22
 
-package common
+package gentests
 
 // A BundleManifest describes the `Bundle` to the OPA server
 // We only use it for informational purposes during tests execution.

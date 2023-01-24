@@ -1,14 +1,13 @@
-package workers
+package internals
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	. "github.com/CopilotIQ/opa-tests/gentests"
 	"io"
 	"net/http"
 	"strings"
-
-	. "github.com/CopilotIQ/opa-tests/common"
 )
 
 const (

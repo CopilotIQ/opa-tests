@@ -5,7 +5,6 @@
 package gentests
 
 import (
-	. "github.com/CopilotIQ/opa-tests/common"
 	"github.com/massenz/slf4go/logging"
 	"path/filepath"
 	"strings"

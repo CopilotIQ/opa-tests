@@ -5,7 +5,6 @@
 package gentests
 
 import (
-	"github.com/CopilotIQ/opa-tests/common"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/massenz/slf4go/logging"
 )
@@ -14,7 +13,7 @@ var (
 	SecretKey = []byte("doe5n7matter")
 )
 
-func NewToken(body *common.JwtBody) string {
+func NewToken(body *JwtBody) string {
 	logging.RootLog.Debug("Creating JWT with body: %v", body)
 	claims := jwt.MapClaims{
 		"sub":   body.Subject,
