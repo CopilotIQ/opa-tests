@@ -4,6 +4,8 @@
 
 package gentests
 
+import "sync"
+
 // A BundleManifest describes the `Bundle` to the OPA server
 // We only use it for informational purposes during tests execution.
 type BundleManifest struct {
@@ -109,4 +111,31 @@ type TestUnit struct {
 	Endpoint    string
 	Body        TestBody
 	Expectation bool
+}
+
+// TestReport will collect and report all test results, including failures
+// TODO: need a much better reporting
+type TestReport struct {
+	Succeeded uint
+	Failed    uint
+	Total     uint
+
+	FailedNames []string
+
+	mutex sync.Mutex
+}
+
+func (r *TestReport) IncSuccess() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.Total++
+	r.Succeeded++
+}
+
+func (r *TestReport) ReportFailure(name string) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.Total++
+	r.Failed++
+	r.FailedNames = append(r.FailedNames, name)
 }
