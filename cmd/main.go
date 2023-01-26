@@ -38,7 +38,8 @@ func main() {
 	src := flag.String("src", Sources, "Path to policies (Rego)")
 	out := flag.String("out", Out, "Path to test results report")
 	workers := flag.Uint("workers", 0, "Number of parallel threads to run")
-	templates := flag.String("templates", Templates,
+	// TODO: replace default with `Templates` once JSON templates are implemented
+	templates := flag.String("templates", "",
 		"Directory containing (optional) Golang templates for the test requests' JSON body")
 	debug := flag.Bool("v", false, "Enable verbose logging")
 
@@ -64,8 +65,13 @@ func main() {
 
 	m := ReadManifest(*manifest)
 
-	Log.Info("generating Bundle rev. %s from %s", m.Revision, *src)
-	// TODO: generate Bundle and store where the TestContainer can mount it
+	Log.Info("Generating Bundle rev. %s from %s", m.Revision, *src)
+	bundle, err := CreateBundle(*manifest, *src)
+	if err != nil {
+		Log.Fatal(err)
+	}
+	defer os.Remove(bundle)
+	Log.Debug("bundle %s created", bundle)
 
 	Log.Info("Generating Testcases from: %s", testsDir)
 	tests, err := Generate(testsDir)
@@ -76,7 +82,10 @@ func main() {
 		Log.Fatal(fmt.Errorf("nothing to do"))
 	}
 	Log.Info("All tests generated")
-	Log.Warn("JSON templates in %s support not implemented yet", *templates)
+
+	if *templates != "" {
+		Log.Fatal(fmt.Errorf("JSON templates support not implemented yet"))
+	}
 
 	EnsureReportDir(*out)
 	file, _ := os.Create(*out)
