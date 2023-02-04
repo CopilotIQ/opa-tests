@@ -5,14 +5,14 @@
 package gentests
 
 import (
-	. "github.com/CopilotIQ/opa-tests/common"
 	"github.com/massenz/slf4go/logging"
 	"path/filepath"
 	"strings"
 )
 
 const (
-	YamlGlob = "*.yaml"
+	YamlGlob     = "*.yaml"
+	PoliciesGlob = "*.rego"
 )
 
 var Log = logging.NewLog("testgen")
@@ -30,13 +30,7 @@ func Generate(SourceDir string) ([]TestUnit, error) {
 	Log.Debug("Generating test requests from %s", SourceDir)
 
 	// TODO: walk the subtree (instead of just the directory) and modify the test names to
-	// reflect the position in the subtree.
-	//     filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-	//        if !info.IsDir() {
-	//            // generate TestCase
-	//        }
-	//        return nil
-	//    })
+	// 		 reflect the position in the subtree using WalkDir(root string, fn fs.WalkDirFunc)
 	files, err := filepath.Glob(filepath.Join(SourceDir, YamlGlob))
 	if err != nil {
 		return nil, err
