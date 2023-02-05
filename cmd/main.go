@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -92,8 +93,19 @@ func main() {
 	defer file.Close()
 
 	start := time.Now()
-	// TODO: start TestContainer OPA and obtain URL Address
-	report := RunTests(tests, *workers, "http://localhost:8181")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	server, err := NewOpaContainer(ctx, bundle)
+	if err != nil {
+		Log.Fatal(err)
+	}
+	name, _ := server.Container.Name(ctx)
+	Log.Info("OPA Server started (container: %s)", name)
+	server.WaitHealthy(ctx, 200*time.Millisecond)
+	Log.Info("OPA Server is accepting incoming requests")
+
+	report := RunTests(tests, *workers, server.Address)
+	server.Container.Terminate(ctx)
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(report)
 	if err != nil {
@@ -116,12 +128,13 @@ func RunTests(tests []TestUnit, workers uint, addr string) *TestReport {
 	} else {
 		Log.Warn("running single-core, execution will be slower")
 	}
+	url := fmt.Sprintf("http://%s", addr)
 	var report TestReport
 	for i := uint(0); i < workers; i++ {
 		wg.Add(1)
 		go func(num uint) {
 			Log.Debug("starting worker #%d", num)
-			err := SendData(addr, dataChan, &report)
+			err := SendData(url, dataChan, &report)
 			if err != nil {
 				Log.Error("error sending requests to OPA server: %v", err)
 			}
@@ -142,7 +155,7 @@ func RunTests(tests []TestUnit, workers uint, addr string) *TestReport {
 func EstimateWorkers() uint {
 	cores := runtime.NumCPU()
 	if cores > 3 {
-		Log.Debug("running with 70% CPU load on %d cores", cores)
+		Log.Debug("running with 70%% CPU load on %d cores", cores)
 		return uint(math.Ceil(0.7 * float64(cores)))
 	}
 	return 1
