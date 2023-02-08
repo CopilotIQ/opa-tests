@@ -42,7 +42,6 @@ func (s *OpaServer) IsHealthy() bool {
 }
 
 func (s *OpaServer) WaitHealthy(ctx context.Context, pollInterval time.Duration) error {
-	d, ok := ctx.Deadline()
 	for {
 		if s.IsHealthy() {
 			return nil
@@ -52,17 +51,13 @@ func (s *OpaServer) WaitHealthy(ctx context.Context, pollInterval time.Duration)
 		case <-ctx.Done():
 			return context.Canceled
 		default:
-			// if ok was false, no deadline was set, we carry on forever
-			if ok && d.Before(time.Now()) {
-				return context.DeadlineExceeded
-			}
 			time.Sleep(pollInterval)
 		}
 	}
 }
 
-// ContainerHealthyStrategy fixes an issue with TestContainers' HealthStrategy which unreferences a null
-// Health pointer, when trying to check on the health of a container.
+// ContainerHealthyStrategy fixes an issue with TestContainers' HealthStrategy which dereferences
+// a nil Health pointer, when trying to check on the health of a container.
 // See: https://github.com/testcontainers/testcontainers-go/issues/801
 type ContainerHealthyStrategy struct {
 	Strategy *wait.HealthStrategy
@@ -78,11 +73,10 @@ func (ws *ContainerHealthyStrategy) WaitUntilReady(ctx context.Context, target w
 			if err != nil {
 				return err
 			}
-			if state.Health != nil && state.Health.Status != "healthy" {
-				time.Sleep(ws.Strategy.PollInterval)
-				continue
+			if state.Running {
+				return nil
 			}
-			return nil
+			time.Sleep(ws.Strategy.PollInterval)
 		}
 	}
 }
@@ -106,7 +100,8 @@ func NewOpaContainer(ctx context.Context, bundlePath string) (*OpaServer, error)
 			filepath.Join(OpaBundleDir, bundle)},
 
 		WaitingFor: &ContainerHealthyStrategy{
-			Strategy: wait.NewHealthStrategy().WithPollInterval(1 * time.Second)},
+			Strategy: wait.NewHealthStrategy().
+				WithPollInterval(1 * time.Second)},
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,

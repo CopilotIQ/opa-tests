@@ -25,6 +25,8 @@ const (
 	Templates = "src/tests/resources"
 	Tests     = "src/tests"
 	Out       = "out/reports/results.json"
+
+	DefaultOpaContainerStartTimeout = 1 * time.Minute
 )
 
 var (
@@ -93,7 +95,7 @@ func main() {
 	defer file.Close()
 
 	start := time.Now()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultOpaContainerStartTimeout)
 	defer cancel()
 	server, err := NewOpaContainer(ctx, bundle)
 	if err != nil {
@@ -101,11 +103,17 @@ func main() {
 	}
 	name, _ := server.Container.Name(ctx)
 	Log.Info("OPA Server started (container: %s)", name)
-	server.WaitHealthy(ctx, 200*time.Millisecond)
+	err = server.WaitHealthy(ctx, 10*time.Second)
+	if err != nil {
+		Log.Fatal(err)
+	}
 	Log.Info("OPA Server is accepting incoming requests")
 
 	report := RunTests(tests, *workers, server.Address)
-	server.Container.Terminate(ctx)
+	err = server.Container.Terminate(ctx)
+	if err != nil {
+		Log.Error("failed to stop OPA container: %v", err)
+	}
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(report)
 	if err != nil {
