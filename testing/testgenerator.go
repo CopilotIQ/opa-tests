@@ -2,7 +2,7 @@
 //
 // Created by M. Massenzio, 2022-06-22
 
-package gentests
+package testing
 
 import (
 	"github.com/massenz/slf4go/logging"
