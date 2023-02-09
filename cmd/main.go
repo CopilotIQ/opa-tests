@@ -8,14 +8,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	. "github.com/CopilotIQ/opa-tests/gentests"
-	. "github.com/CopilotIQ/opa-tests/gentests/internals"
+	. "github.com/CopilotIQ/opa-tests/testing"
+	. "github.com/CopilotIQ/opa-tests/testing/internals"
 	slf4go "github.com/massenz/slf4go/logging"
-	"math"
 	"os"
 	"path/filepath"
-	"runtime"
-	"sync"
 	"time"
 )
 
@@ -103,11 +100,6 @@ func main() {
 	}
 	name, _ := server.Container.Name(ctx)
 	Log.Info("OPA Server started (container: %s)", name)
-	err = server.WaitHealthy(ctx, 10*time.Second)
-	if err != nil {
-		Log.Fatal(err)
-	}
-	Log.Info("OPA Server is accepting incoming requests")
 
 	report := RunTests(tests, *workers, server.Address)
 	err = server.Container.Terminate(ctx)
@@ -123,50 +115,6 @@ func main() {
 	b, _ := json.MarshalIndent(report, "", "    ")
 	fmt.Println(string(b))
 	Log.Info("Took %v -- Test results saved to %s", elapsed, *out)
-}
-
-func RunTests(tests []TestUnit, workers uint, addr string) *TestReport {
-	dataChan := make(chan TestUnit)
-	var wg sync.WaitGroup
-	if workers == 0 {
-		workers = EstimateWorkers()
-	}
-	if workers > 1 {
-		Log.Info("running %d parallel test runners", workers)
-	} else {
-		Log.Warn("running single-core, execution will be slower")
-	}
-	url := fmt.Sprintf("http://%s", addr)
-	var report TestReport
-	for i := uint(0); i < workers; i++ {
-		wg.Add(1)
-		go func(num uint) {
-			Log.Debug("starting worker #%d", num)
-			err := SendData(url, dataChan, &report)
-			if err != nil {
-				Log.Error("error sending requests to OPA server: %v", err)
-			}
-			wg.Done()
-			Log.Debug("worker #%d done", num)
-		}(i)
-	}
-	for _, req := range tests {
-		dataChan <- req
-	}
-	// Once you're done sending data, close the channel
-	close(dataChan)
-	wg.Wait()
-	fmt.Println()
-	return &report
-}
-
-func EstimateWorkers() uint {
-	cores := runtime.NumCPU()
-	if cores > 3 {
-		Log.Debug("running with 70%% CPU load on %d cores", cores)
-		return uint(math.Ceil(0.7 * float64(cores)))
-	}
-	return 1
 }
 
 func EnsureReportDir(report string) {

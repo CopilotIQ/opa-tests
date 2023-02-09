@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 // This package contains all the code necessary to run a self-contained OPA
@@ -20,7 +19,7 @@ import (
 const (
 	// OpaImage is the Docker image to be used for tests.
 	// TODO: make the OPA version a configuration value
-	OpaImage     = "openpolicyagent/opa:0.48.0"
+	OpaImage     = "openpolicyagent/opa:0.47.4"
 	OpaPort      = "8181"
 	OpaBundleDir = "/etc/opa/bundles"
 )
@@ -36,51 +35,6 @@ func (s *OpaServer) GetEndpoint(endpoint string) (*http.Response, error) {
 	return http.Get(fmt.Sprintf("http://%s%s", s.Address, endpoint))
 }
 
-func (s *OpaServer) IsHealthy() bool {
-	res, err := s.GetEndpoint("/health")
-	return err == nil && res.StatusCode == http.StatusOK
-}
-
-func (s *OpaServer) WaitHealthy(ctx context.Context, pollInterval time.Duration) error {
-	for {
-		if s.IsHealthy() {
-			return nil
-		}
-		// First order: if we got canceled, we bail
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-			time.Sleep(pollInterval)
-		}
-	}
-}
-
-// ContainerHealthyStrategy fixes an issue with TestContainers' HealthStrategy which dereferences
-// a nil Health pointer, when trying to check on the health of a container.
-// See: https://github.com/testcontainers/testcontainers-go/issues/801
-type ContainerHealthyStrategy struct {
-	Strategy *wait.HealthStrategy
-}
-
-func (ws *ContainerHealthyStrategy) WaitUntilReady(ctx context.Context, target wait.StrategyTarget) (err error) {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			state, err := target.State(ctx)
-			if err != nil {
-				return err
-			}
-			if state.Running {
-				return nil
-			}
-			time.Sleep(ws.Strategy.PollInterval)
-		}
-	}
-}
-
 func NewOpaContainer(ctx context.Context, bundlePath string) (*OpaServer, error) {
 	// Note that Docker will only mount the full path of the directory that contains the bundle
 	bundleDir, err := filepath.Abs(filepath.Dir(bundlePath))
@@ -94,14 +48,9 @@ func NewOpaContainer(ctx context.Context, bundlePath string) (*OpaServer, error)
 		Binds: []string{
 			strings.Join([]string{bundleDir, OpaBundleDir}, ":"),
 		},
-
-		Cmd: []string{"run", "--server",
-			"--addr", fmt.Sprintf(":%s", OpaPort),
+		Cmd: []string{"run", "--server", "--addr", fmt.Sprintf(":%s", OpaPort),
 			filepath.Join(OpaBundleDir, bundle)},
-
-		WaitingFor: &ContainerHealthyStrategy{
-			Strategy: wait.NewHealthStrategy().
-				WithPollInterval(1 * time.Second)},
+		WaitingFor: wait.ForHTTP("/health").WithPort(OpaPort),
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,

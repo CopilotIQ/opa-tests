@@ -2,7 +2,7 @@ package internals_test
 
 import (
 	"context"
-	"github.com/CopilotIQ/opa-tests/gentests/internals"
+	"github.com/CopilotIQ/opa-tests/testing/internals"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -16,8 +16,8 @@ const (
 var (
 	// A constant by all means
 	testPolicies = []string{
-		"copilotiq/tokens.rego",
 		"copilotiq/common.rego",
+		"copilotiq/tokens.rego",
 		"copilotiq/users.rego",
 	}
 )

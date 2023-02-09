@@ -4,21 +4,21 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"github.com/CopilotIQ/opa-tests/gentests"
+	"github.com/CopilotIQ/opa-tests/testing"
 	"io"
 	"os"
 	"path/filepath"
 )
 
 var (
-	log = gentests.Log
+	log = testing.Log
 )
 
 // CreateBundle takes a JSON Manifest and the path to a directory containing OPA Policies (
 // Rego files) and then generates an archive (`.tar.gz`) file according to OPA Bundle rules.
 // It returns the full path to the temporary file.
 func CreateBundle(manifestPath string, srcDir string) (string, error) {
-	var manifest = gentests.ReadManifest(manifestPath)
+	var manifest = testing.ReadManifest(manifestPath)
 	if manifest == nil {
 		return "", fmt.Errorf("cannot load manifest %s", manifestPath)
 	}
@@ -40,7 +40,7 @@ func CreateBundle(manifestPath string, srcDir string) (string, error) {
 
 	// TODO: walk the subtree (instead of just the directory) and modify the test names to
 	// 		 reflect the position in the subtree using WalkDir(root string, fn fs.WalkDirFunc)
-	files, err := filepath.Glob(filepath.Join(srcDir, gentests.PoliciesGlob))
+	files, err := filepath.Glob(filepath.Join(srcDir, testing.PoliciesGlob))
 	if err != nil {
 		return "", err
 	}
