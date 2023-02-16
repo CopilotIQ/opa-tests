@@ -7,8 +7,6 @@
 
 *This code is licensed under the terms of the Apache License 2.0, see LICENSE for more details*
 
-**NOTE THIS WILL BECOME A PUBLIC REPOSITORY AND NO PROPRIETARY CopilotIQ CODE SHOULD BE STORED HERE**
-
 
 # Motivation
 
@@ -212,43 +210,6 @@ Running `opatest` will cause the following to happen:
 Tests will be run in parallel, using a number of workers determined by the available CPU cores (up to 70%) which can be changed using the `-workers` flag (using `1` disables running tests in parallel).
 
 **TODO: the process of templatizing the JSON requests is still TBD**
-
-
-# Optional Components
-
-## Running an OPA server locally
-
-To run OPA inside a container, you can use the `run-opa` script (after creating a "bundle", see [`bundle`](#bundle)):
-
-```
-./run-opa out/bundles/authz-0.6.26.tar.gz
-
-2023-01-22T22:43 [INFO] Running OPA Server v. 0.48.0; use: http://localhost:8181/v1/data for policies
-```
-
-## Bundle
-
-OPA supports the concept of `bundle` and the server will mount the bundle from the filesystem, as generated from the Rego policies we are testing; while the format of the Bundle (and how it is generated) is largely irrelevant for `opa-test`, and the user is free (in fact, encouraged) to use their own automation, nonetheless we also provide a utility script that will build an OPA-compliant bundle from a `manifest` and a set of Rego files.
-
-
-```
-./bundle -h
-```
-
-to see usage instructions.
-
-```
-└─( ./bundle examples/policies out/bundles examples/policies/manifest.json
-
-Bundle out/bundles/authz-0.6.26.tar.gz exists. Overwrite [y/n]? y
-Created authz-0.6.26.tar.gz (Rev. 0.6.26) in out/bundles
-```
-
-The command above will package the Rego files in a tar gzipped file in `out/bundles`, named something like `authz-0.6.26.tar.gz` (the bundle version is derived from [the Manifest](examples/policies/manifest.json))
-
-## Common Utilities
-
-The `bundle` and `run-opa` scripts use the [Common Utilities](https://github.com/massenz/common-utils): please see that repository for instructions on how to [install a recent release](https://github.com/massenz/common-utils#usage) and configure your environment `$UTILS_DIR` variable to point to that folder.
 
 ---
 
