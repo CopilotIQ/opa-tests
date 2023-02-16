@@ -18,14 +18,14 @@ jobs:
     strategy:
       matrix:
         os: ["linux", "darwin"]
-        arch: ["386", "amd64", "arm64"]
+        arch: ["amd64", "arm64"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Build
         run: |
-          export GOOS=${{ .matrix.os }}
-          export GOARCH=${{ .matrix.arch }}
+          export GOOS=${{ matrix.os }}
+          export GOARCH=${{ matrix.arch }}
           make build
       - name: upload
         uses: actions/upload-artifact@v3
