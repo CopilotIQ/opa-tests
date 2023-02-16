@@ -1,0 +1,18 @@
+# Upon pushing to the main branch it runs all tests.
+# Author: Marco Massenzio (marco@alertavert.com)
+name: Test
+
+on:
+  push:
+    branches: [ main, release ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Test
+      run: |
+        go test ./testing ./testing/internals
