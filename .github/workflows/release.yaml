@@ -1,0 +1,58 @@
+# Upon pushing to the release branch a new tag will be created
+# in preparation for the release.
+#
+# Author: Marco Massenzio (marco@alertavert.com)
+name: Release
+on:
+  push:
+    branches:
+      - release
+env:
+  AUTHOR: ${{ github.event.pusher.name }}
+  EMAIL: ${{ github.event.pusher.email }}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: ["linux", "darwin"]
+        arch: ["amd64", "arm64"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: |
+          export GOOS=${{ matrix.os }}
+          export GOARCH=${{ matrix.arch }}
+          make build
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: opatest
+          path: out/bin/
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - run: mkdir -p out/bin
+      - name: download
+        uses: actions/download-artifact@v3
+        with:
+          name: opatest
+          path: out/bin/
+
+      - name: Create release tag
+        run: |
+          git config user.name "$AUTHOR"
+          git config user.email "<$EMAIL>"
+          TAG=$(make release)
+          git tag -a $TAG -m "Release $TAG"
+          git push --tags
+          echo TAG=${TAG} >> $GITHUB_ENV
+      - uses: ncipollo/release-action@v1.10.0
+        with:
+          tag: ${{ env.TAG }}
+          generateReleaseNotes: true
+          artifacts: out/bin/opatest-*
