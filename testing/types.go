@@ -49,6 +49,7 @@ type TestBody struct {
 // and the Test asserts truth of falsity of this statement.
 type JwtBody struct {
 	Subject string   `json:"sub" yaml:"sub"`
+	UserId  string   `json:"user_id" yaml:"user_id"`
 	Roles   []string `json:"roles" yaml:"roles"`
 	Issuer  string   `json:"iss" yaml:"iss"`
 }
