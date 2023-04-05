@@ -13,6 +13,7 @@ import (
 const (
 	YamlGlob     = "*.yaml"
 	PoliciesGlob = "*.rego"
+	JwtIssuer    = "iss"
 )
 
 var Log = logging.NewLog("testgen")
@@ -49,9 +50,10 @@ func Generate(SourceDir string) ([]TestUnit, error) {
 		for _, test := range testcase.Tests {
 			testname := strings.Join([]string{testcase.Name, test.Name}, ".")
 			Log.Debug("--- %s", testname)
-			Log.Trace("JWT contents: %v", test.Token)
-			if test.Token.Issuer == "" {
-				test.Token.Issuer = testcase.Iss
+			Log.Trace("JWT contents: %v", test.Token.Claims)
+
+			if test.Token.Claims[JwtIssuer] == "" {
+				test.Token.Claims[JwtIssuer] = testcase.Iss
 			}
 			requests = append(requests, TestUnit{
 				Name:        testname,
