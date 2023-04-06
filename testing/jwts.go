@@ -20,6 +20,9 @@ func NewToken(body *JwtBody) string {
 		"roles": body.Roles,
 		"iss":   body.Issuer,
 	}
+	for k, v := range body.Claims {
+		claims[k] = v
+	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	ss, _ := token.SignedString(SecretKey)
 	return ss
