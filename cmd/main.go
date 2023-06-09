@@ -13,17 +13,19 @@ import (
 	slf4go "github.com/massenz/slf4go/logging"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
 const (
-	Manifest  = "src/main/resources/manifest.json"
-	Sources   = "src/main/rego"
-	Templates = "src/tests/resources"
-	Tests     = "src/tests"
-	Out       = "out/reports/results.json"
-
 	DefaultOpaContainerStartTimeout = 1 * time.Minute
+	DefaultBundleDir                = "out/bundles"
+	DefaultBundleName               = "authz"
+	Manifest                        = "src/main/resources/manifest.json"
+	Out                             = "out/reports/results.json"
+	Sources                         = "src/main/rego"
+	Tests                           = "src/tests"
+	Templates                       = "src/tests/resources"
 )
 
 var (
@@ -42,6 +44,8 @@ func main() {
 	templates := flag.String("templates", "",
 		"Directory containing (optional) Golang templates for the test requests' JSON body")
 	debug := flag.Bool("v", false, "Enable verbose logging")
+	skipTests := flag.Bool("x", false, "Generates the bundle and exits")
+	bundleLoc := flag.String("bundle", DefaultBundleDir, "Directory where to save the bundle")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [-v] [-manifest MANIFEST] [-src SRC] "+
@@ -69,6 +73,22 @@ func main() {
 	bundle, err := CreateBundle(*manifest, *src)
 	if err != nil {
 		Log.Fatal(err)
+	}
+	if *skipTests { // we're done
+		var projectName string
+		var found bool
+		if projectName, found = m.Metadata["project"]; !found {
+			projectName = DefaultBundleName
+		}
+		destination := strings.Join([]string{*bundleLoc,
+			fmt.Sprintf("%s-%s.tar.gz", projectName, m.Revision)}, string(filepath.Separator))
+		err := os.Rename(bundle, destination)
+		if err != nil {
+			Log.Error("Could not save bundle %s: %v", destination, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Bundle created: %s\n", destination)
+		return
 	}
 	defer os.Remove(bundle)
 	Log.Debug("bundle %s created", bundle)
