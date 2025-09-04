@@ -130,6 +130,7 @@ the request would carry this JWT as an `api_token` field (base-64 encoded) and t
     "input": {
         "api_token":"eyJhbG...6I8eHnFU",
         "resource": {
+            "host": "readings.dev.copilotiq.co",
             "path": "/users",
             "method":"POST"
           }
