@@ -23,6 +23,7 @@ type BundleManifest struct {
 type Resource struct {
 	Path   string `json:"path"`
 	Method string `json:"method"`
+	Host   string `json:"host"`
 }
 
 // A Request is what is typically sent from a REST API server that requires
