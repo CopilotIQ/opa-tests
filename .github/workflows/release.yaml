@@ -28,7 +28,7 @@ jobs:
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opatest-${{ matrix.os }}-${{ matrix.arch }}
+          name: opatest-${{ matrix.os }}-${{ matrix.arch }}.opa
           path: out/bin/
 
   release:
