@@ -12,7 +12,7 @@ env:
   EMAIL: ${{ github.event.pusher.email }}
 
 jobs:
-  build:
+  release:
     strategy:
       matrix:
         os: ["linux", "darwin"]
@@ -28,21 +28,8 @@ jobs:
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opatest
+          name: "opatest-${GOOS}-${GOARCH}"
           path: out/bin/
-
-  release:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-      - run: mkdir -p out/bin
-      - name: download
-        uses: actions/download-artifact@v4
-        with:
-          name: opatest
-          path: out/bin/
-
       - name: Create release tag
         run: |
           git config user.name "$AUTHOR"
