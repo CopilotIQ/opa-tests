@@ -12,7 +12,7 @@ env:
   EMAIL: ${{ github.event.pusher.email }}
 
 jobs:
-  release:
+  build:
     strategy:
       matrix:
         os: ["linux", "darwin"]
@@ -29,6 +29,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: opatest-${{ matrix.os }}-${{ matrix.arch }}
+          path: out/bin/
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p out/bin
+      - name: download
+        uses: actions/download-artifact@v4
+        with:
           path: out/bin/
       - name: Create release tag
         run: |
