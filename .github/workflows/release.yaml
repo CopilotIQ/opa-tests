@@ -28,7 +28,7 @@ jobs:
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opatest-${{ matrix.os }}-${{ matrix.arch }}.opa
+          name: opatest-${{ matrix.os }}-${{ matrix.arch }}
           path: out/bin/
 
   release:
@@ -40,6 +40,7 @@ jobs:
       - name: download
         uses: actions/download-artifact@v4
         with:
+          merge-multiple: true
           path: out/bin/
       - name: Create release tag
         run: |
