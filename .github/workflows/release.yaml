@@ -28,7 +28,7 @@ jobs:
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opatest-${GOOS}-${GOARCH}
+          name: opatest-${{ matrix.os }}-${{ matrix.arch }}
           path: out/bin/
       - name: Create release tag
         run: |
@@ -38,7 +38,7 @@ jobs:
           git tag -a $TAG -m "Release $TAG"
           git push --tags
           echo TAG=${TAG} >> $GITHUB_ENV
-      - uses: ncipollo/release-action@v1.10.0
+      - uses: ncipollo/release-action@v1.20
         with:
           tag: ${{ env.TAG }}
           generateReleaseNotes: true
