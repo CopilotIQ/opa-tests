@@ -1,6 +1,6 @@
 module github.com/CopilotIQ/opa-tests
 
-go 1.19
+go 1.23.1
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.4.2
