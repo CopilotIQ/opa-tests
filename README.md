@@ -1,12 +1,16 @@
 # Open Policy Agent (OPA) Integration Tests Framework
 
+## Releasing
+
+- Update the `version` in the `Makefile` through commit to `main`
+- Merge from `main` to `release`
+- For depedent projects, download the binary for the new version into the source dir (e.g. `out/bin/opatest`)
 
 ### Copyright & Licensing
 
 **The code is copyright (c) 2023 CopilotIQ Inc. All rights reserved**
 
-*This code is licensed under the terms of the Apache License 2.0, see LICENSE for more details*
-
+_This code is licensed under the terms of the Apache License 2.0, see LICENSE for more details_
 
 # Motivation
 
@@ -20,7 +24,6 @@ The code in this repository is particularly amenable to be used with the [JWT-OP
 
 `TODO: this README is work in progress`
 
-
 # Testing Rego Policies
 
 ## Testcase Generation
@@ -28,7 +31,6 @@ The code in this repository is particularly amenable to be used with the [JWT-OP
 All Policies Tests are generated following the `Testcase` definitions (in YAML), and running the `opa-test` test generator and runner.
 
 The Generator itself is written in Go and built using `make`, the binary is generated in `out/bin` (or can be downloaded from the `Releases` page).
-
 
 ## Testcases
 
@@ -49,6 +51,7 @@ Each `Test` in a `Testcase` then defines an invariant (or, if you will, an asser
 ### Reference
 
 **Note**
+
 > This is still under active development and will change in future, especially as we add the ability to templatize the POST request (in JSON)
 
 A `Testcase` currently defines the following fields:
@@ -127,23 +130,22 @@ the request would carry this JWT as an `api_token` field (base-64 encoded) and t
 
 ```json
 {
-    "input": {
-        "api_token":"eyJhbG...6I8eHnFU",
-        "resource": {
-            "host": "readings.dev.copilotiq.co",
-            "path": "/users",
-            "method":"POST"
-          }
-      }
+  "input": {
+    "api_token": "eyJhbG...6I8eHnFU",
+    "resource": {
+      "host": "readings.dev.copilotiq.co",
+      "path": "/users",
+      "method": "POST"
+    }
+  }
 }
-
 ```
 
 This would succeed when the OPA server returns a response `{result: false}`, and fail with anything else (including an empty response, which indicates the required rule in the policy package does not exist).
 
 **Note**
-> To create or inspect JWTs you can use the [`jwtie`](https://github.com/massenz/jwtie) utility.
 
+> To create or inspect JWTs you can use the [`jwtie`](https://github.com/massenz/jwtie) utility.
 
 # Execute Tests
 
@@ -154,7 +156,6 @@ Currently, `opatest` does not run the OPA container (see [`run-opa`](run-opa) fo
 Over the next few iterations, we will move all the functionality into the `opatest` binary; for now, to run the tests use:
 
 `opa-test -manifest policies.json -opa http://localhost:8089 path/to/tests`
-
 
 **END NOTE**
 
@@ -172,23 +173,23 @@ $(pwd)                    -- the current directory
   |    |   -- rego         -- contains all *.rego OPA policies
   |    |   |
   |    |   -- resources    -- manifest.json
-  |    |   
+  |    |
   |    -- tests            -- contains all *.yaml Testcases
   |        |
   |        -- resources    -- contains all *.json Request Templates
   |
   -- out
       |
-      -- reports           -- test results          
+      -- reports           -- test results
 ```
 
 The locations defined above can be changed using the following flags:
 
-- `-manifest`   path to `manifest.json`
-- `-src`        directory containing Rego (`*.rego`) policies (including subfolders)
-- `-templates`  directory for JSON Golang templates for the requests
-- `-out`        directory where the test results will be generated
-- `path/to/tests`  if present, the first argument will point to the folder containing the `*.yaml` testcases
+- `-manifest` path to `manifest.json`
+- `-src` directory containing Rego (`*.rego`) policies (including subfolders)
+- `-templates` directory for JSON Golang templates for the requests
+- `-out` directory where the test results will be generated
+- `path/to/tests` if present, the first argument will point to the folder containing the `*.yaml` testcases
 
 All paths can be absolute or relative to the current folder.
 
