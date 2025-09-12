@@ -28,7 +28,7 @@ jobs:
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: "opatest-${GOOS}-${GOARCH}"
+          name: opatest-${GOOS}-${GOARCH}
           path: out/bin/
       - name: Create release tag
         run: |
