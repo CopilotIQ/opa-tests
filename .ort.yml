@@ -4,13 +4,3 @@ excludes:
   - pattern: "infra/**"
     reason: "BUILD_TOOL_OF"
     comment: "Excluding infra build data"
-  scopes:
-  - pattern: "vendor"
-    reason: "DEV_DEPENDENCY_OF"
-    comment: "Packages to build and test the main module."
-  - pattern: "test.*"
-    reason: "TEST_DEPENDENCY_OF"
-    comment: "Packages for testing only."
-  - pattern: "devDependencies"
-    reason: "DEV_DEPENDENCY_OF"
-    comment: "Packages for development only."
