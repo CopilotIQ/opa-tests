@@ -43,5 +43,4 @@ build: $(bin)  ## Build the opatest binary in the out/bin directory.
 		-o $(bin) cmd/main.go
 
 test: $(srcs) $(test_srcs)  ## Runs all tests
-	go test ./... -v
-	go test `go list ./... -v | grep -v /cmd`
+	go test `go list ./... | grep -v /cmd` -v
