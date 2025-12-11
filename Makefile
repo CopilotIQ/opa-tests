@@ -43,4 +43,4 @@ build: $(bin)  ## Build the opatest binary in the out/bin directory.
 		-o $(bin) cmd/main.go
 
 test: $(srcs) $(test_srcs)  ## Runs all tests
-	@ginkgo $(pkgs)
+	go test `go list ./... | grep -v /cmd` -v
