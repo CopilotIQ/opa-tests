@@ -5,7 +5,7 @@
 GOOS ?= $(shell uname -s | tr "[:upper:]" "[:lower:]")
 GOARCH ?= amd64
 
-version := v0.3.0
+version := v0.3.1
 release := $(version)-g$(shell git rev-parse --short HEAD)
 prog := opatest
 bin := out/bin/$(prog)-$(version)_$(GOOS)-$(GOARCH)
@@ -43,4 +43,4 @@ build: $(bin)  ## Build the opatest binary in the out/bin directory.
 		-o $(bin) cmd/main.go
 
 test: $(srcs) $(test_srcs)  ## Runs all tests
-	@ginkgo $(pkgs)
+	go test `go list ./... | grep -v /cmd` -v
