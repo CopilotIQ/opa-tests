@@ -1,0 +1,6 @@
+---
+excludes:
+  paths:
+  - pattern: "infra/**"
+    reason: "BUILD_TOOL_OF"
+    comment: "Excluding infra build data"
