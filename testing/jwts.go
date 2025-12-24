@@ -16,9 +16,10 @@ var (
 func NewToken(body *JwtBody) string {
 	logging.RootLog.Debug("Creating JWT with body: %v", body)
 	claims := jwt.MapClaims{
-		"sub":   body.Subject,
-		"roles": body.Roles,
-		"iss":   body.Issuer,
+		"sub":      body.Subject,
+		"roles":    body.Roles,
+		"iss":      body.Issuer,
+		"business": body.Business,
 	}
 	for k, v := range body.Claims {
 		claims[k] = v
