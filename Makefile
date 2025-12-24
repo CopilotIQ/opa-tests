@@ -5,7 +5,7 @@
 GOOS ?= $(shell uname -s | tr "[:upper:]" "[:lower:]")
 GOARCH ?= amd64
 
-version := v0.3.1
+version := v0.3.2
 release := $(version)-g$(shell git rev-parse --short HEAD)
 prog := opatest
 bin := out/bin/$(prog)-$(version)_$(GOOS)-$(GOARCH)
