@@ -49,10 +49,11 @@ type TestBody struct {
 // Based on the Policy, one (or more) of the Roles may allow permissions to access the Resource,
 // and the Test asserts truth of falsity of this statement.
 type JwtBody struct {
-	Subject string                 `json:"sub" yaml:"sub"`
-	Roles   []string               `json:"roles" yaml:"roles"`
-	Issuer  string                 `json:"iss" yaml:"iss"`
-	Claims  map[string]interface{} `json:"claims,omitempty" yaml:"claims,omitempty"`
+	Subject  string                 `json:"sub" yaml:"sub"`
+	Roles    []string               `json:"roles" yaml:"roles"`
+	Business []string               `json:"business" yaml:"business"`
+	Issuer   string                 `json:"iss" yaml:"iss"`
+	Claims   map[string]interface{} `json:"claims,omitempty" yaml:"claims,omitempty"`
 }
 
 // Target defines the policy that we want to test with the Testcase
