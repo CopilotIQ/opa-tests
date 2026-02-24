@@ -3,7 +3,7 @@ module github.com/CopilotIQ/opa-tests
 go 1.24.0
 
 require (
-	github.com/golang-jwt/jwt/v4 v4.4.2
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/massenz/slf4go v0.3.1-gb35df61
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.38.2
