@@ -5,13 +5,11 @@
 package testing
 
 import (
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/massenz/slf4go/logging"
 )
 
-var (
-	SecretKey = []byte("doe5n7matter")
-)
+var SecretKey = []byte("doe5n7matter")
 
 func NewToken(body *JwtBody) string {
 	logging.RootLog.Debug("Creating JWT with body: %v", body)
